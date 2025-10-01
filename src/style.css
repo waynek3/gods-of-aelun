@@ -1,0 +1,61 @@
+:root {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #0000AA; /* Classic EGA Blue */
+  color: #00AAAA; /* Classic EGA Cyan */
+
+  /* New: Define a precise pixel-based grid system */
+  --char-pixel-width: 10px;
+  --char-pixel-height: 18px;
+}
+
+body { margin: 0; }
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.game-container {
+  position: relative; 
+  color: #00AAAA;
+  font-size: 16px; /* Keep a base font-size */
+}
+
+.game-background {
+  white-space: pre;
+}
+
+.clickable {
+  position: absolute;
+  cursor: pointer;
+  user-select: none;
+  /* Uncomment the line below to debug the clickable areas */
+  /* border: 1px solid red; */
+}
+
+/* Updated to use our precise pixel grid */
+.card-button {
+  width: calc(var(--char-pixel-width) * 6);
+  height: calc(var(--char-pixel-height) * 3);
+}
+
+.pray-button {
+  width: calc(var(--char-pixel-width) * 22);
+  height: calc(var(--char-pixel-height) * 1);
+}
+
+.card-button.selected {
+  outline: 2px solid #FFFF55; /* EGA Yellow */
+  /* This outline will now be perfectly aligned */
+}
+
+#game-title {
+  text-align: center;
+  font-size: 8px; /* Makes the ASCII art smaller */
+  line-height: 0.9; /* Tightens up the lines vertically */
+  margin-bottom: 0.5rem; /* Adds a little space below the title */
+  color: #55FFFF; /* A slightly brighter cyan to make it pop */
+}
