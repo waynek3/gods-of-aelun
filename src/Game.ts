@@ -24,7 +24,11 @@ export class Game {
     constructor(app: HTMLDivElement) {
         this.renderer = new RenderingEngine(app);
         this.combat = new CombatEngine();
-        app.addEventListener('click', (e) => this.handleClicks(e));
+        
+        // UPDATED: Listen for both click and touch events
+        ['click', 'touchend'].forEach(eventType => {
+            app.addEventListener(eventType, (e) => this.handleClicks(e as MouseEvent | TouchEvent));
+        });
     }
 
     public start() {
@@ -68,7 +72,9 @@ export class Game {
         return totalCost;
     };
     
-    private handleClicks(e: MouseEvent) {
+    // UPDATED: Method now accepts a generic event and prevents default behavior
+    private handleClicks(e: MouseEvent | TouchEvent) {
+        e.preventDefault(); // This is the key to preventing "ghost" clicks on mobile
         const target = e.target as HTMLElement;
         const action = target.dataset.action;
 
