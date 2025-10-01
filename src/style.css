@@ -1,18 +1,18 @@
 :root {
   font-family: 'Courier New', Courier, monospace;
-  background-color: #0000AA; /* Classic EGA Blue */
-  color: #00AAAA; /* Classic EGA Cyan */
+  background-color: #0000AA;
+  color: #00AAAA;
 
-  --char-pixel-width: 10px;
-  --char-pixel-height: 18px;
-  --game-width: calc(var(--char-pixel-width) * 42);
-  --game-height: calc(var(--char-pixel-height) * 24);
+  --screen-width-chars: 42;
+  --screen-height-chars: 24;
 }
 
-/* UPDATED: Body now handles centering */
 body { 
   margin: 0; 
   overflow: hidden;
+}
+
+#app {
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -21,52 +21,43 @@ body {
   align-items: center;
 }
 
-
 #game-title {
   text-align: center;
   font-size: 8px;
   line-height: 0.9;
   color: #55FFFF;
-  /* We removed the margin-bottom from here */
 }
 
 .game-container {
-  position: relative; 
+  /* This is the core of the new system */
+  display: grid;
+  grid-template-columns: repeat(var(--screen-width-chars), 1fr);
+  grid-template-rows: repeat(var(--screen-height-chars), 1fr);
+  
+  /* This preserves the aspect ratio */
+  width: 95vw;
+  max-width: 450px;
+  aspect-ratio: var(--screen-width-chars) / var(--screen-height-chars);
+  
   color: #00AAAA;
-  font-size: 16px;
-  width: var(--game-width);
-  height: var(--game-height);
-  transform-origin: top center;
-}
-
-@media (max-width: 420px) {
-  .game-container {
-    transform: scale(calc(100vw / var(--game-width)));
-  }
+  font-size: 16px; /* This font-size is now just a base */
 }
 
 .game-background {
   white-space: pre;
+  /* The background now spans the entire grid area */
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  font-size: inherit; /* Inherit size from container */
+  line-height: 1;
 }
 
 .clickable {
-  position: absolute;
+  /* No longer need absolute positioning! */
   cursor: pointer;
   user-select: none;
-}
-
-.card-button {
-  width: calc(var(--char-pixel-width) * 6);
-  height: calc(var(--char-pixel-height) * 3);
-}
-
-.pray-button {
-  width: calc(var(--char-pixel-width) * 22);
-  height: calc(var(--char-pixel-height) * 1);
-}
-
-.card-button.selected {
-  outline: 2px solid #FFFF55;
+  /* Uncomment to debug clickable areas */
+  /* border: 1px solid red; */
 }
 
 .selected-char {
