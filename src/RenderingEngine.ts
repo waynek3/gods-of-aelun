@@ -137,7 +137,6 @@ export class RenderingEngine {
 
   private renderTrial(payload: RenderPayload): string {
     let html = '';
-    const centerX = Math.floor(SCREEN_WIDTH_CHARS / 2);
     html += `<div class="center-line" style="grid-row: 13; grid-column: 2 / span 40;">${'─'.repeat(40)}</div>`
     payload.units.forEach(unit => {
         // We add 1 because CSS grid rows/columns are 1-based, not 0-based
