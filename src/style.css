@@ -68,3 +68,7 @@ body {
 .card-button.selected {
   outline: 2px solid #FFFF55;
 }
+
+.selected-char {
+  color: #FFFF55; /* EGA Yellow */
+}

@@ -7,6 +7,9 @@ import { CombatEngine } from './CombatEngine';
 import type { GamePhase } from './types';
 import { type God, PANTHEON } from './God';
 
+const CHAR_PIXEL_WIDTH = 10;
+const CHAR_PIXEL_HEIGHT = 18;
+
 export class Game {
     private gameState: GamePhase = 'GOD_SELECTION';
     public chosenGod: God | null = null;
@@ -25,9 +28,8 @@ export class Game {
         this.renderer = new RenderingEngine(app);
         this.combat = new CombatEngine();
         
-        // UPDATED: Listen for both click and touch events
         ['click', 'touchend'].forEach(eventType => {
-            app.addEventListener(eventType, (e) => this.handleClicks(e as MouseEvent | TouchEvent));
+            app.addEventListener(eventType, (e) => this.handleInput(e as MouseEvent | TouchEvent));
         });
     }
 
@@ -72,48 +74,77 @@ export class Game {
         return totalCost;
     };
     
-    // UPDATED: Method now accepts a generic event and prevents default behavior
-    private handleClicks(e: MouseEvent | TouchEvent) {
-        e.preventDefault(); // This is the key to preventing "ghost" clicks on mobile
-        const target = e.target as HTMLElement;
-        const action = target.dataset.action;
+    private handleInput(e: MouseEvent | TouchEvent) {
+        e.preventDefault();
+        const gameContainer = (e.currentTarget as HTMLElement).querySelector('.game-container');
+        if (!gameContainer) return;
 
-        if (this.gameState === 'GOD_SELECTION' && action === 'select-god') {
-            const godName = target.dataset.name;
-            this.chosenGod = PANTHEON.find(g => g.name === godName) || null;
-            if (this.chosenGod) this.enterPrayerPhase();
-        } else if (this.gameState === 'PRAYER' && action === 'select-card') {
-            const index = parseInt(target.dataset.index || '-1');
-            if (this.selectedPrayerIndices.includes(index)) {
-                this.selectedPrayerIndices = this.selectedPrayerIndices.filter(i => i !== index);
-            } else {
-                this.selectedPrayerIndices.push(index);
+        const rect = gameContainer.getBoundingClientRect();
+        
+        let clientX, clientY;
+        if (e instanceof MouseEvent) {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        } else {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+        }
+
+        const scale = rect.width / (CHAR_PIXEL_WIDTH * 42);
+        const x = (clientX - rect.left) / scale;
+        const y = (clientY - rect.top) / scale;
+
+        const gridX = Math.floor(x / CHAR_PIXEL_WIDTH);
+        const gridY = Math.floor(y / CHAR_PIXEL_HEIGHT);
+
+        if (this.gameState === 'GOD_SELECTION') {
+            PANTHEON.forEach((god, index) => {
+                if (gridY === 8 + (index * 4)) {
+                    this.chosenGod = god;
+                    this.enterPrayerPhase();
+                }
+            });
+        } else if (this.gameState === 'PRAYER') {
+            const cardPositions = [{x: 5, y: 9}, {x: 18, y: 9}, {x: 31, y: 9}, {x: 5, y: 15}, {x: 18, y: 15}, {x: 31, y: 15}, {x: 18, y: 21}];
+            
+            cardPositions.forEach((pos, index) => {
+                if (gridY >= pos.y - 1 && gridY <= pos.y + 1 && gridX >= pos.x && gridX <= pos.x + 5) {
+                    if (this.selectedPrayerIndices.includes(index)) {
+                        this.selectedPrayerIndices = this.selectedPrayerIndices.filter(i => i !== index);
+                    } else {
+                        this.selectedPrayerIndices.push(index);
+                    }
+                }
+            });
+
+            if (gridY >= 20 && gridY <= 21) {
+                 this.confirmPrayerSelection();
             }
-        } else if (this.gameState === 'PRAYER' && action === 'confirm-prayer') {
-            this.confirmPrayerSelection();
         } else if (this.gameState === 'CASTING') {
-            if (action === 'select-hand-card') {
-                this.selectedHandIndex = this.selectedHandIndex === parseInt(target.dataset.index || '0')
-                    ? null
-                    : parseInt(target.dataset.index || '0');
-            } else if (action === 'select-board-slot') {
-                if (this.selectedHandIndex !== null && this.playerHand[this.selectedHandIndex]) {
-                    const slotIndex = parseInt(target.dataset.index || '0');
-                    if (this.castingArray[slotIndex] === null) {
+            this.playerHand.forEach((_card, index) => {
+                const cardX = 3 + (index * 7);
+                if (gridY === 20 && gridX >= cardX && gridX <= cardX + 2) {
+                    this.selectedHandIndex = this.selectedHandIndex === index ? null : index;
+                }
+            });
+            const boardPositions = [{x:5,y:8},{x:18,y:8},{x:31,y:8},{x:5,y:13},{x:18,y:13},{x:31,y:13}];
+            boardPositions.forEach((pos, index) => {
+                if (gridY >= pos.y-1 && gridY <= pos.y+1 && gridX >= pos.x && gridX <= pos.x+5) {
+                    if (this.selectedHandIndex !== null && this.playerHand[this.selectedHandIndex] && this.castingArray[index] === null) {
                         const cardToPlace = this.playerHand.splice(this.selectedHandIndex, 1)[0];
-                        this.castingArray[slotIndex] = cardToPlace;
+                        this.castingArray[index] = cardToPlace;
                         this.selectedHandIndex = null;
                     }
                 }
-            } 
-            else if (action === 'sacrifice-card') {
+            });
+            if (this.selectedHandIndex !== null && gridY === 18) {
                 this.sacrificeSelectedCard();
             }
-            else if (action === 'start-trial') {
+            if (gridY === 22) {
                 this.startNewTrial();
             }
-        } else if (this.gameState === 'JUDGEMENT' && action === 'continue') {
-            this.enterPrayerPhase();
+        } else if (this.gameState === 'JUDGEMENT') {
+            if (gridY === 15) this.enterPrayerPhase();
         }
 
         this.render();
