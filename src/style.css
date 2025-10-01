@@ -30,7 +30,7 @@ body {
   grid-template-columns: repeat(var(--screen-width-chars), 1fr);
   grid-template-rows: repeat(var(--screen-height-chars), 1fr);
   
-  /* All sizing (width, max-width, aspect-ratio, font-size) is now controlled by main.ts */
+  /* TEST: All sizing rules have been removed. JS is now in control. */
   
   background-color: #0000AA;
   border: 3px solid #AAAAAA;
