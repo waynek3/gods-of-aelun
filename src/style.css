@@ -10,15 +10,16 @@
 body { 
   margin: 0; 
   overflow: hidden;
-}
-
-#app {
   width: 100vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+
+#app {
+  /* This is just a mounting point, no styles needed */
 }
 
 #game-title {
@@ -29,37 +30,46 @@ body {
 }
 
 .game-container {
-  /* This is the core of the new system */
   display: grid;
   grid-template-columns: repeat(var(--screen-width-chars), 1fr);
   grid-template-rows: repeat(var(--screen-height-chars), 1fr);
   
-  /* This preserves the aspect ratio */
   width: 95vw;
   max-width: 450px;
   aspect-ratio: var(--screen-width-chars) / var(--screen-height-chars);
   
-  color: #00AAAA;
-  font-size: 16px; /* This font-size is now just a base */
-}
-
-.game-background {
-  white-space: pre;
-  /* The background now spans the entire grid area */
-  grid-column: 1 / -1;
-  grid-row: 1 / -1;
-  font-size: inherit; /* Inherit size from container */
-  line-height: 1;
+  background-color: #0000AA;
+  border: 3px solid #AAAAAA;
+  border-image: linear-gradient(to bottom, #FFFF55, #AAAAAA) 1;
 }
 
 .clickable {
-  /* No longer need absolute positioning! */
   cursor: pointer;
   user-select: none;
-  /* Uncomment to debug clickable areas */
-  /* border: 1px solid red; */
+}
+
+/* General styles for our grid elements */
+.header, .card, .card-slot, .hand-card, .button, .unit, .ui-text {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  white-space: pre; /* Important for multi-line ASCII art */
+}
+
+/* Specific styles */
+.card.selected, .hand-card.selected {
+  color: #FFFF55; /* Yellow for selection */
+}
+
+.header {
+  color: #FFFFFF; /* White headers */
+  font-weight: bold;
+}
+
+.unit {
+  color: #FFFFFF; /* White units */
 }
 
 .selected-char {
-  color: #FFFF55; /* EGA Yellow */
+  color: #FFFF55;
 }
