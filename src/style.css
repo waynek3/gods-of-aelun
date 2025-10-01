@@ -1,5 +1,6 @@
 :root {
-  font-family: 'IBM Plex Mono', monospace;
+  /* UPDATED to enforce the new font */
+  font-family: 'VT323', monospace;
   background-color: #0000AA;
   color: #00AAAA;
 
@@ -20,8 +21,11 @@ body {
 
 #game-title {
   text-align: center;
-  font-size: 8px;
-  line-height: 0.9;
+  /* UPDATED for better pixel font rendering */
+  font-size: 20px;
+  line-height: 0.8;
+  transform: scale(0.5);
+  transform-origin: bottom;
   color: #55FFFF;
 }
 
@@ -37,6 +41,9 @@ body {
   background-color: #0000AA;
   border: 3px solid #AAAAAA;
   border-image: linear-gradient(to bottom, #FFFF55, #AAAAAA) 1;
+
+  /* Set a base font size for the grid calculation */
+  font-size: 16px;
 }
 
 .clickable {
@@ -44,26 +51,23 @@ body {
   user-select: none;
 }
 
-/* General styles for our grid elements */
 .header, .card, .card-slot, .hand-card, .button, .unit, .ui-text {
   display: flex;
   justify-content: center;
   align-items: center;
-  white-space: pre; /* Important for multi-line ASCII art */
+  white-space: pre;
 }
 
-/* Specific styles */
 .card.selected, .hand-card.selected {
-  color: #FFFF55; /* Yellow for selection */
+  color: #FFFF55;
 }
 
 .header {
-  color: #FFFFFF; /* White headers */
-  font-weight: bold;
+  color: #FFFFFF;
 }
 
 .unit {
-  color: #FFFFFF; /* White units */
+  color: #FFFFFF;
 }
 
 .selected-char {
