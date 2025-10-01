@@ -5,19 +5,14 @@
 
   --char-pixel-width: 10px;
   --char-pixel-height: 18px;
-
-  /* Define the exact size of our game in pixels */
-  --game-width: calc(var(--char-pixel-width) * 42);   /* 420px */
-  --game-height: calc(var(--char-pixel-height) * 24); /* 432px */
+  --game-width: calc(var(--char-pixel-width) * 42);
+  --game-height: calc(var(--char-pixel-height) * 24);
 }
 
+/* UPDATED: Body now handles centering */
 body { 
   margin: 0; 
-  /* Prevent scrolling on mobile */
   overflow: hidden;
-}
-
-#app {
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -26,30 +21,26 @@ body {
   align-items: center;
 }
 
+
 #game-title {
   text-align: center;
   font-size: 8px;
   line-height: 0.9;
   color: #55FFFF;
+  /* We removed the margin-bottom from here */
 }
 
 .game-container {
   position: relative; 
   color: #00AAAA;
   font-size: 16px;
-
-  /* Set the fixed size of our game */
   width: var(--game-width);
   height: var(--game-height);
-
-  /* This is the magic: it tells the container how to shrink */
   transform-origin: top center;
 }
 
-/* This media query applies ONLY if the screen is narrower than our game */
 @media (max-width: 420px) {
   .game-container {
-    /* Calculate the scale factor and shrink the container */
     transform: scale(calc(100vw / var(--game-width)));
   }
 }
@@ -58,7 +49,6 @@ body {
   white-space: pre;
 }
 
-/* All other styles (.clickable, .card-button, etc.) remain the same */
 .clickable {
   position: absolute;
   cursor: pointer;
