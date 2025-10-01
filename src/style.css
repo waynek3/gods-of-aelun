@@ -1,5 +1,5 @@
 :root {
-  font-family: 'Courier New', Courier, monospace;
+  font-family: 'IBM Plex Mono', monospace;
   background-color: #0000AA;
   color: #00AAAA;
 
@@ -16,10 +16,6 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-}
-
-#app {
-  /* This is just a mounting point, no styles needed */
 }
 
 #game-title {
