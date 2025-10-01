@@ -1,5 +1,4 @@
 :root {
-  /* UPDATED to enforce the new font */
   font-family: 'VT323', monospace;
   background-color: #0000AA;
   color: #00AAAA;
@@ -21,11 +20,8 @@ body {
 
 #game-title {
   text-align: center;
-  /* UPDATED for better pixel font rendering */
-  font-size: 20px;
-  line-height: 0.8;
-  transform: scale(0.5);
-  transform-origin: bottom;
+  font-size: 10px;
+  line-height: 0.9;
   color: #55FFFF;
 }
 
@@ -34,16 +30,11 @@ body {
   grid-template-columns: repeat(var(--screen-width-chars), 1fr);
   grid-template-rows: repeat(var(--screen-height-chars), 1fr);
   
-  width: 95vw;
-  max-width: 450px;
-  aspect-ratio: var(--screen-width-chars) / var(--screen-height-chars);
+  /* All sizing (width, max-width, aspect-ratio, font-size) is now controlled by main.ts */
   
   background-color: #0000AA;
   border: 3px solid #AAAAAA;
   border-image: linear-gradient(to bottom, #FFFF55, #AAAAAA) 1;
-
-  /* Set a base font size for the grid calculation */
-  font-size: 16px;
 }
 
 .clickable {
