@@ -1,52 +1,209 @@
 // src/Game.ts
 
-import { Unit } from './Unit';
-import { type CardTemplate, DECK } from './Card';
+import { type CardTemplate as Card, DECK as CARDS } from './Card';
+import { PANTHEON, type God } from './God';
 import { RenderingEngine, type RenderPayload } from './RenderingEngine';
+import { Unit } from './Unit';
+import { type GamePhase } from './types';
 import { CombatEngine } from './CombatEngine';
-import type { GamePhase } from './types';
-import { type God, PANTHEON } from './God';
 
 export class Game {
-    private gameState: GamePhase = 'GOD_SELECTION';
-    public chosenGod: God | null = null;
-    public playerAether: number = 10;
-    public units: Unit[] = [];
-    public playerHand: CardTemplate[] = [];
-    public cardsInPrayer: CardTemplate[] = [];
-    public selectedPrayerIndices: number[] = [];
-    public castingArray: (CardTemplate | null)[] = Array(6).fill(null);
-    public selectedHandIndex: number | null = null;
+    private renderingEngine: RenderingEngine;
+    private combatEngine: CombatEngine;
     
-    private renderer: RenderingEngine;
-    private combat: CombatEngine;
+    private gameState: GamePhase = 'GOD_SELECTION';
+    private chosenGod: God | null = null;
+    private playerAether: number = 3;
+    private units: Unit[] = [];
+    
+    private prayerDeck: Card[] = [];
+    private shoeSize: number = 3; // Defines how many sets of cards form the deck
+    private playerHand: Card[] = [];
+    private cardsInPrayer: Card[] = [];
+    private castingArray: (Card | null)[] = [null, null, null, null, null, null];
+    
+    private selectedPrayerIndices: number[] = [];
+    private selectedHandIndex: number | null = null;
 
     constructor(app: HTMLDivElement) {
-        this.renderer = new RenderingEngine(app);
-        this.combat = new CombatEngine();
-        
-        ['click', 'touchend'].forEach(eventType => {
-            app.addEventListener(eventType, (e) => this.handleInput(e as MouseEvent | TouchEvent));
-        });
-    }
-
-    public start() {
-        setInterval(() => this.tick(), 100);
+        this.renderingEngine = new RenderingEngine(app);
+        this.combatEngine = new CombatEngine();
+        this.setupInputHandlers(app);
         this.render();
     }
 
-    private tick() {
-        if (this.gameState === 'TRIAL') {
-            this.units = this.combat.updateTrial(this.units);
-            this.render();
-            if (!this.units.some(u => u.team === 'player') || !this.units.some(u => u.team === 'enemy')) {
-                this.gameState = 'JUDGEMENT';
-                this.render();
+    private setupInputHandlers(app: HTMLDivElement): void {
+        app.addEventListener('click', (event) => {
+            const target = (event.target as SVGElement).closest<HTMLElement>('[data-action]');
+            if (target?.dataset.action) {
+                this.handleAction(target.dataset.action, target.dataset);
             }
+        });
+    }
+
+    private handleAction(action: string, dataset: DOMStringMap): void {
+        switch (action) {
+            case 'select-god':
+                if (dataset.name) {
+                    this.chosenGod = PANTHEON.find(g => g.name === dataset.name) || null;
+                    if (this.chosenGod) this.startGame();
+                }
+                break;
+            case 'select-card':
+                if (dataset.index) this.togglePrayerCardSelection(parseInt(dataset.index, 10));
+                break;
+            case 'confirm-prayer':
+                this.confirmPrayer();
+                break;
+            case 'select-hand-card':
+                if (dataset.index) this.selectedHandIndex = parseInt(dataset.index, 10);
+                break;
+            case 'select-board-slot':
+                if (dataset.index) this.placeCardInSlot(parseInt(dataset.index, 10));
+                break;
+            case 'sacrifice-card':
+                this.sacrificeCard();
+                break;
+            case 'start-trial':
+                this.startTrial();
+                break;
+            case 'continue':
+                this.resetForNewRound();
+                break;
+        }
+        this.render();
+    }
+
+    private startGame(): void {
+        if (!this.chosenGod) return;
+        
+        // Build the deck from the shoe
+        const newDeck: Card[] = [];
+        for (let i = 0; i < this.shoeSize; i++) {
+            newDeck.push(...CARDS); // Add a full copy of the master card list
+        }
+        this.prayerDeck = newDeck;
+
+        this.shufflePrayerDeck();
+        this.drawPrayerCards();
+        this.gameState = 'PRAYER';
+    }
+    
+    private getPrayerCost(): number {
+        const numSelected = this.selectedPrayerIndices.length;
+        // The total cost is the square of the number of cards selected.
+        return numSelected * numSelected;
+    }
+    
+    private togglePrayerCardSelection(index: number): void {
+        const selectionIndex = this.selectedPrayerIndices.indexOf(index);
+        if (selectionIndex > -1) {
+            this.selectedPrayerIndices.splice(selectionIndex, 1);
+        } else {
+            this.selectedPrayerIndices.push(index);
         }
     }
     
-    private render() {
+    private confirmPrayer(): void {
+        const cost = this.getPrayerCost();
+        if (this.playerAether >= cost) {
+            this.playerAether -= cost;
+            const prayedCards = this.selectedPrayerIndices.map(i => this.cardsInPrayer[i]);
+            this.playerHand.push(...prayedCards);
+            this.selectedPrayerIndices = [];
+            this.gameState = 'CASTING';
+        } else {
+            console.log("Not enough aether for this prayer.");
+        }
+    }
+
+    private placeCardInSlot(slotIndex: number): void {
+        if (this.selectedHandIndex === null || this.castingArray[slotIndex] !== null) {
+            return;
+        }
+        const cardToPlace = this.playerHand[this.selectedHandIndex];
+        this.castingArray[slotIndex] = cardToPlace;
+        this.playerHand.splice(this.selectedHandIndex, 1);
+        this.selectedHandIndex = null;
+    }
+
+    private sacrificeCard(): void {
+        if (this.selectedHandIndex !== null) {
+            this.playerHand.splice(this.selectedHandIndex, 1);
+            this.playerAether++;
+            this.selectedHandIndex = null;
+        }
+    }
+
+    private startTrial(): void {
+        this.units = [];
+
+        // 1. Add the chosen God's Avatar (Champion)
+        if (this.chosenGod) {
+            const avatar = this.chosenGod.avatar;
+            const avatarUnit = new Unit(
+                20, 22, avatar.char, avatar.hp, 'player',
+                avatar.rangedStrength, avatar.rangedSpeed, avatar.godName
+            );
+            this.units.push(avatarUnit);
+        }
+
+        // 2. Add units from the casting array
+        this.castingArray.forEach((card, index) => {
+            if (card && card.godName) {
+                const isTopRow = index < 3;
+                const x = 10 + (index % 3) * 10;
+                const y = isTopRow ? 18 : 22;
+                const newUnit = new Unit(
+                    x, y, card.char, card.hp, 'player', 
+                    card.rangedStrength, card.rangedSpeed, card.godName
+                );
+                this.units.push(newUnit);
+            }
+        });
+
+        // 3. Add enemy units
+        this.units.push(new Unit(15, 4, 'G', 10, 'enemy', 1, 1, 'Enemy God'));
+        this.units.push(new Unit(25, 4, 'O', 20, 'enemy', 2, 1, 'Enemy God'));
+
+        this.gameState = 'TRIAL';
+        this.render();
+
+        const trialInterval = setInterval(() => {
+            this.units = this.combatEngine.updateTrial(this.units);
+            this.render(); 
+
+            const playerUnits = this.units.filter(u => u.team === 'player');
+            const enemyUnits = this.units.filter(u => u.team === 'enemy');
+
+            if (playerUnits.length === 0 || enemyUnits.length === 0) {
+                clearInterval(trialInterval);
+                this.gameState = 'JUDGEMENT';
+                this.render();
+            }
+        }, 500);
+    }
+
+    private resetForNewRound(): void {
+        this.playerAether = 3;
+        this.playerHand = [];
+        this.castingArray.fill(null);
+        this.drawPrayerCards();
+        this.gameState = 'PRAYER';
+    }
+
+    private shufflePrayerDeck(): void {
+        for (let i = this.prayerDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.prayerDeck[i], this.prayerDeck[j]] = [this.prayerDeck[j], this.prayerDeck[i]];
+        }
+    }
+
+    private drawPrayerCards(): void {
+        this.cardsInPrayer = this.prayerDeck.slice(0, 7);
+    }
+
+    private render(): void {
         const payload: RenderPayload = {
             gameState: this.gameState,
             chosenGod: this.chosenGod,
@@ -57,142 +214,8 @@ export class Game {
             selectedPrayerIndices: this.selectedPrayerIndices,
             castingArray: this.castingArray,
             selectedHandIndex: this.selectedHandIndex,
-            getPrayerCost: this.getPrayerCost,
+            getPrayerCost: () => this.getPrayerCost(),
         };
-        this.renderer.render(payload);
-    }
-    
-    // UPDATED: This is the new, simpler input handler.
-    private handleInput(e: MouseEvent | TouchEvent) {
-        e.preventDefault();
-        const target = e.target as HTMLElement;
-        // We find the closest parent with a data-action, to handle clicks on inner elements
-        const clickable = target.closest('[data-action]') as HTMLElement | null;
-        if (!clickable) return;
-
-        const { action, index, name } = clickable.dataset;
-
-        switch (this.gameState) {
-            case 'GOD_SELECTION':
-                if (action === 'select-god') {
-                    this.chosenGod = PANTHEON.find(g => g.name === name) || null;
-                    if (this.chosenGod) this.enterPrayerPhase();
-                }
-                break;
-            case 'PRAYER':
-                if (action === 'select-card' && index) {
-                    const cardIndex = parseInt(index);
-                    if (this.selectedPrayerIndices.includes(cardIndex)) {
-                        this.selectedPrayerIndices = this.selectedPrayerIndices.filter(i => i !== cardIndex);
-                    } else {
-                        this.selectedPrayerIndices.push(cardIndex);
-                    }
-                } else if (action === 'confirm-prayer') {
-                    this.confirmPrayerSelection();
-                }
-                break;
-            case 'CASTING':
-                if (action === 'select-hand-card' && index) {
-                    const cardIndex = parseInt(index);
-                    this.selectedHandIndex = this.selectedHandIndex === cardIndex ? null : cardIndex;
-                } else if (action === 'select-board-slot' && index) {
-                    this.placeCardInSlot(parseInt(index));
-                } else if (action === 'sacrifice-card') {
-                    this.sacrificeSelectedCard();
-                } else if (action === 'start-trial') {
-                    this.startNewTrial();
-                }
-                break;
-            case 'JUDGEMENT':
-                if (action === 'continue') {
-                    this.enterPrayerPhase();
-                }
-                break;
-        }
-
-        this.render();
-    }
-
-    private getPrayerCost = (): number => {
-        const costs = [1, 3, 5, 8, 13, 21, 34];
-        let totalCost = 0;
-        for (let i = 0; i < this.selectedPrayerIndices.length; i++) {
-            totalCost += costs[i] || 0;
-        }
-        return totalCost;
-    };
-
-    private enterPrayerPhase() {
-        this.gameState = 'PRAYER';
-        this.selectedPrayerIndices = [];
-        this.cardsInPrayer = [];
-        for (let i = 0; i < 7; i++) {
-            this.cardsInPrayer.push(DECK[Math.floor(Math.random() * DECK.length)]);
-        }
-    }
-
-    private confirmPrayerSelection() {
-        const cost = this.getPrayerCost();
-        if (this.playerAether < cost) return;
-        this.playerAether -= cost;
-        const selectedCards = this.selectedPrayerIndices.sort((a,b) => a - b).map(i => this.cardsInPrayer[i]);
-        this.playerHand.push(...selectedCards);
-        this.gameState = 'CASTING';
-    }
-
-    private placeCardInSlot(slotIndex: number) {
-        if (this.selectedHandIndex !== null && this.playerHand[this.selectedHandIndex]) {
-            if (this.castingArray[slotIndex] === null) {
-                const cardToPlace = this.playerHand.splice(this.selectedHandIndex, 1)[0];
-                this.castingArray[slotIndex] = cardToPlace;
-                this.selectedHandIndex = null;
-            }
-        }
-    }
-
-    private sacrificeSelectedCard() {
-        if (this.selectedHandIndex !== null && this.playerHand[this.selectedHandIndex]) {
-            this.playerHand.splice(this.selectedHandIndex, 1);
-            this.playerAether += 1;
-            this.selectedHandIndex = null;
-        }
-    }
-
-    private startNewTrial() {
-        this.units = [];
-        const tempUnitList: Unit[] = [];
-        if (this.chosenGod) {
-            const avatar = this.chosenGod.avatar;
-            tempUnitList.push(new Unit(18, 18, avatar.char, avatar.hp, 'player', avatar.rangedStrength, avatar.rangedSpeed, avatar.godName));
-        }
-        this.castingArray.forEach((card, index) => {
-            if (card) {
-                const x = (index % 3) * 13 + 5;
-                const y = (Math.floor(index / 3)) * 5 + 15;
-                tempUnitList.push(new Unit(x, y, card.char, card.hp, 'player', card.rangedStrength, card.rangedSpeed, card.godName));
-            }
-        });
-        tempUnitList.push(new Unit(20, 2, 'W', 5, 'enemy', 1, 6, 'Beroan'));
-        if (this.chosenGod) {
-            const affinities = this.chosenGod.affinities;
-            for (const unit of tempUnitList) {
-                if (unit.team === 'player') {
-                    if (unit.godName === this.chosenGod.name) {
-                        unit.hp = Math.round(unit.hp * 1.5);
-                    }
-                    if (unit.godName === affinities.positive) {
-                        unit.rangedStrength = Math.round(unit.rangedStrength * 1.5);
-                    }
-                    if (unit.godName === affinities.negative) {
-                        unit.hp = Math.round(unit.hp * 0.75);
-                    }
-                }
-            }
-        }
-        this.units = tempUnitList;
-        this.castingArray = Array(6).fill(null);
-        this.playerHand = [];
-        this.selectedHandIndex = null;
-        this.gameState = 'TRIAL';
+        this.renderingEngine.render(payload);
     }
 }
