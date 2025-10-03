@@ -14,11 +14,15 @@ export class CombatEngine {
             }
 
             // 2. Handle Movement
-            const isAtCenter = unit.team === 'player' ? unit.y <= CENTER_LINE + 1 : unit.y >= CENTER_LINE - 1;
-            if (!isAtCenter) {
-                unit.y += (unit.team === 'player' ? -1 : 1);
-                continue; // Don't attack while moving
+            // NEW: Added a check to prevent the Avatar from moving
+            if (!unit.isAvatar) {
+                const isAtCenter = unit.team === 'player' ? unit.y <= CENTER_LINE + 1 : unit.y >= CENTER_LINE - 1;
+                if (!isAtCenter) {
+                    unit.y += (unit.team === 'player' ? -1 : 1);
+                    continue; // Don't attack while moving
+                }
             }
+
 
             // 3. Handle Attacking
             if (unit.rangedCooldown === 0) {

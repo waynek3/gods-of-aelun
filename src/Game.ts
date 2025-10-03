@@ -138,17 +138,18 @@ export class Game {
     private startTrial(): void {
         this.units = [];
 
-        // 1. Add the chosen God's Avatar (Champion)
+        // 1. Add the chosen God's Avatar for the player
         if (this.chosenGod) {
             const avatar = this.chosenGod.avatar;
             const avatarUnit = new Unit(
                 20, 22, avatar.char, avatar.hp, 'player',
-                avatar.rangedStrength, avatar.rangedSpeed, avatar.godName
+                avatar.rangedStrength, avatar.rangedSpeed, avatar.godName,
+                true // isAvatar = true
             );
             this.units.push(avatarUnit);
         }
 
-        // 2. Add units from the casting array
+        // 2. Add units from the casting array for the player
         this.castingArray.forEach((card, index) => {
             if (card && card.godName) {
                 const isTopRow = index < 3;
@@ -162,9 +163,23 @@ export class Game {
             }
         });
 
-        // 3. Add enemy units
-        this.units.push(new Unit(15, 4, 'G', 10, 'enemy', 1, 1, 'Enemy God'));
-        this.units.push(new Unit(25, 4, 'O', 20, 'enemy', 2, 1, 'Enemy God'));
+        // 3. Add the enemy's Avatar
+        const availableEnemyGods = PANTHEON.filter(g => g.name !== this.chosenGod?.name);
+        const enemyGod = availableEnemyGods[Math.floor(Math.random() * availableEnemyGods.length)];
+        if (enemyGod) {
+            const enemyAvatar = enemyGod.avatar;
+            const enemyAvatarUnit = new Unit(
+                20, 2, enemyAvatar.char, enemyAvatar.hp, 'enemy',
+                enemyAvatar.rangedStrength, enemyAvatar.rangedSpeed, enemyAvatar.godName,
+                true // isAvatar = true
+            );
+            this.units.push(enemyAvatarUnit);
+        }
+
+        // 4. Add other enemy units (placeholders for now)
+        this.units.push(new Unit(15, 6, 'g', 10, 'enemy', 1, 3, 'Enemy God'));
+        this.units.push(new Unit(25, 6, 'o', 10, 'enemy', 1, 3, 'Enemy God'));
+
 
         this.gameState = 'TRIAL';
         this.render();

@@ -7,6 +7,7 @@ export class Unit {
   hp: number;
   team: 'player' | 'enemy';
   godName: string; // Which god this unit belongs to
+  isAvatar: boolean; // NEW: Flag to identify the Avatar unit
 
   rangedStrength: number;
   rangedSpeed: number;
@@ -14,7 +15,8 @@ export class Unit {
 
   constructor(
     x: number, y: number, char: string, hp: number, team: 'player' | 'enemy',
-    rangedStrength: number, rangedSpeed: number, godName: string
+    rangedStrength: number, rangedSpeed: number, godName: string,
+    isAvatar: boolean = false // NEW: Add isAvatar to constructor
   ) {
     this.x = x;
     this.y = y;
@@ -24,6 +26,7 @@ export class Unit {
     this.rangedStrength = rangedStrength;
     this.rangedSpeed = rangedSpeed;
     this.godName = godName;
+    this.isAvatar = isAvatar; // NEW: Assign the isAvatar flag
   }
 
   takeDamage(amount: number) {
